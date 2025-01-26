@@ -1,7 +1,11 @@
 require('dotenv').config();
+const express = require('express');
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
-const { MongoClient, ObjectId } = require('mongodb');
+const cors = require('cors');
+const { connectDB } = require('./config/db');
+const { searchQuestions } = require('./services/questionService');
+const searchRoutes = require('./routes/searchRoutes');
 
 // Load gRPC definition
 const PROTO_PATH = './proto/questions.proto';
@@ -13,61 +17,45 @@ const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
   oneofs: true,
 });
 const questionProto = grpc.loadPackageDefinition(packageDefinition).QuestionService;
-console.log(questionProto);
 
-// MongoDB client
-let db;
-async function connectDB() {
-  const client = new MongoClient(process.env.MONGO_URI);
-  await client.connect();
-  db = client.db();
-  console.log('Connected to MongoDB');
-}
+// Initialize Express app
+const app = express();
+app.use(express.json());
+app.use(cors()); // Allow cross-origin requests from frontend
 
-// Implement the gRPC service
-async function searchQuestions(call, callback) {
-  const { query, page = 1, limit = 10 } = call.request;
-  const skip = (page - 1) * limit;
-
-  try {
-    const questions = await db
-      .collection('questions')
-      .find({ title: new RegExp(query, 'i') }) // Case-insensitive search
-      .skip(skip)
-      .limit(limit)
-      .toArray();
-
-    const total = await db.collection('questions').countDocuments({ title: new RegExp(query, 'i') });
-
-    callback(null, {
-      questions: questions.map((q) => ({
-        id: q._id.toString(),
-        title: q.title,
-        type: q.type,
-      })),
-      total,
-      page,
-      limit,
-    });
-  } catch (err) {
-    callback(err, null);
-  }
-}
+// REST API routes
+app.use('/api', searchRoutes);
 
 // Start gRPC server
-function startServer() {
+function startGrpcServer() {
   const server = new grpc.Server();
 
   // Add the service with its implementation
   server.addService(questionProto.service, { searchQuestions });
 
   // Bind the server to the specified port
-  server.bindAsync(`0.0.0.0:${process.env.PORT}`, grpc.ServerCredentials.createInsecure(), (err, port) => {
-    if (err) {
-      console.error(err);
-      return;
+  server.bindAsync(
+    `0.0.0.0:${process.env.GRPC_PORT}`,
+    grpc.ServerCredentials.createInsecure(),
+    (err, port) => {
+      if (err) {
+        console.error(err);
+        return;
+      }
+      console.log(`gRPC server running on port ${port}`);
+      server.start();
     }
-    console.log(`gRPC server running on port ${port}`);
-    server.start();
+  );
+}
+
+// Initialize MongoDB and start the servers
+async function initializeApp() {
+  await connectDB();
+  startGrpcServer();
+
+  app.listen(process.env.REST_PORT, () => {
+    console.log(`Backend server running on http://localhost:${process.env.REST_PORT}`);
   });
 }
+
+initializeApp();
