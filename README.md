@@ -1,4 +1,3 @@
-Here’s a `README.md` file that will help anyone set up and run the QuestSearch project:
 
 ---
 
