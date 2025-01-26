@@ -1,0 +1,24 @@
+{
+  "name": "questsearch",
+  "version": "1.0.0",
+  "description": "��#\u0000 \u0000Q\u0000u\u0000e\u0000s\u0000t\u0000S\u0000e\u0000a\u0000r\u0000c\u0000h\u0000\r\u0000 \u0000",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "nodemon index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@grpc/grpc-js": "^1.12.5",
+    "@grpc/proto-loader": "^0.7.13",
+    "axios": "^1.7.9",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "mongodb": "^6.12.0",
+    "mongoose": "^8.9.5",
+    "nodemon": "^3.1.9"
+  }
+}
